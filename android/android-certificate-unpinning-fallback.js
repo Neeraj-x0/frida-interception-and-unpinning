@@ -147,17 +147,20 @@ Java.perform(function () {
                             };
                             console.log(`      [+] ${className}->${methodName} (fallback OkHttp patch)`);
                         } else if (isAppmattusOkHttpInterceptMethod(errorMessage, failingMethod)) {
-                            // See Appmattus CertificateTransparencyInterceptor patch in unpinning script:
-                            const chainType = Java.use(failingMethod.argumentTypes[0].className);
-                            const responseTypeName = failingMethod.returnType.className;
-                            const okHttpChain = matchOkHttpChain(chainType, responseTypeName);
-                            failingMethod.implementation = (chain) => {
-                                if (DEBUG_MODE) console.log(` => Fallback Appmattus+OkHttp patch`);
-                                const proceed = chain[okHttpChain.proceedMethodName].bind(chain);
-                                const request = chain[okHttpChain.requestFieldName].value;
-                                return proceed(request);
-                            };
-                            console.log(`      [+] ${className}->${methodName} (fallback Appmattus+OkHttp patch)`);
+                        // Apply Appmattus CertificateTransparencyInterceptor patch in the unpinning script:
+                        const chainClass = Java.use(failingMethod.argumentTypes[0].className);
+                        const responseClassName = failingMethod.returnType.className;
+                        const okHttpChain = matchOkHttpChain(chainClass, responseClassName);
+                        failingMethod.implementation = (chain) => {
+                            if (DEBUG_MODE) {
+                                console.log(` => Applying fallback Appmattus+OkHttp patch`);
+                            }
+                            const proceed = chain[okHttpChain.proceedMethodName].bind(chain);
+                            const request = chain[okHttpChain.requestFieldName].value;
+                            return proceed(request);
+                        };
+                        console.log(`      [+] Patched: ${className}->${methodName} (Fallback Appmattus+OkHttp patch)`);
+
                         } else if (isX509TrustManager(callingClass, methodName)) {
                             const argumentTypes = failingMethod.argumentTypes.map(t => t.className);
                             const returnType = failingMethod.returnType.className;
